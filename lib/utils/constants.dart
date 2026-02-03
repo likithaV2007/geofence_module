@@ -11,10 +11,10 @@ class AppConstants {
   static const String _remoteUrl = 'https://your-ngrok-url.ngrok-free.dev';
   
   // For production deployment
-  static const String _productionUrl = 'https://your-domain.com';
+  static const String _productionUrl = 'https://your-production-url.com';
   
   // Current active URL - CHANGE THIS BASED ON YOUR SETUP
-  static const String baseUrl = _localUrl; // Change to _remoteUrl for remote access
+  static const String baseUrl = _productionUrl; // Ready for production hosting
   
   static const String trackLocationEndpoint = '/track-location';
   static const String sendFcmEndpoint = '/send-fcm';
