@@ -9,6 +9,10 @@ const app = express();
 const GEOFENCE_RADIUS_METERS = 10;
 const LOCATION_TOLERANCE = 0.0001; // ~11 meters
 const DEG_TO_RAD = Math.PI / 180;
+const INITIAL_NOTIFICATION_DELAY = 5 * 60 * 1000; // 5 minutes
+
+// In-memory storage for active trips
+const activeTrips = new Map();
 
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000', 'http://127.0.0.1:3000'],
@@ -121,6 +125,164 @@ app.post('/send-fcm', async (req, res) => {
   } catch (error) {
     console.error('❌ FCM error:', error);
     res.status(500).json({ error: 'FCM notification failed', details: error.message });
+  }
+});
+
+// Multi-stop tracking endpoint
+app.post('/start-multi-stop-tracking', async (req, res) => {
+  try {
+    const { tripId, stops, currentLat, currentLng } = req.body;
+    
+    console.log('\n🚀 Starting multi-stop tracking:', {
+      tripId,
+      stopsCount: stops?.length,
+      currentLat,
+      currentLng
+    });
+    
+    if (!tripId || !stops || !Array.isArray(stops) || stops.length === 0) {
+      return res.status(400).json({ error: 'Missing tripId or stops array' });
+    }
+    
+    // Validate stops format
+    for (let i = 0; i < stops.length; i++) {
+      const stop = stops[i];
+      if (!stop.lat || !stop.lng || !stop.fcmToken) {
+        return res.status(400).json({ 
+          error: `Stop ${i + 1} missing required fields (lat, lng, fcmToken)` 
+        });
+      }
+    }
+    
+    // Store trip data
+    activeTrips.set(tripId, {
+      stops,
+      currentStopIndex: 0,
+      startTime: Date.now(),
+      initialNotificationSent: false
+    });
+    
+    // Send initial notification after 5 minutes
+    setTimeout(async () => {
+      const trip = activeTrips.get(tripId);
+      if (trip && !trip.initialNotificationSent && trip.currentStopIndex === 0) {
+        trip.initialNotificationSent = true;
+        const firstStop = trip.stops[0];
+        await sendNotification(firstStop.fcmToken, 
+          'Trip Started! 🚗', 
+          'Driver has started the journey to your location');
+        console.log(`✅ Initial notification sent for trip ${tripId}`);
+      }
+    }, INITIAL_NOTIFICATION_DELAY);
+    
+    res.json({ 
+      success: true, 
+      message: 'Multi-stop tracking started',
+      tripId,
+      stopsCount: stops.length
+    });
+  } catch (error) {
+    console.error('❌ Multi-stop tracking error:', error);
+    res.status(500).json({ error: 'Failed to start tracking', details: error.message });
+  }
+});
+
+// Helper function to send notifications
+async function sendNotification(fcmToken, title, body, data = {}) {
+  if (!firebaseInitialized) {
+    throw new Error('Firebase not initialized');
+  }
+  
+  const message = {
+    token: fcmToken,
+    notification: { title, body },
+    data: { ...data, timestamp: new Date().toISOString() },
+    android: {
+      priority: 'high',
+      notification: {
+        channelId: 'geofence_channel',
+        priority: 'high'
+      }
+    }
+  };
+  
+  return await admin.messaging().send(message);
+}
+
+// Multi-stop location tracking
+app.post('/track-multi-stop-location', async (req, res) => {
+  try {
+    const { tripId, currentLat, currentLng } = req.body;
+    
+    if (!tripId || typeof currentLat !== 'number' || typeof currentLng !== 'number') {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    const trip = activeTrips.get(tripId);
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+    
+    if (trip.currentStopIndex >= trip.stops.length) {
+      return res.json({ 
+        success: true, 
+        status: 'Trip completed',
+        message: 'All stops reached'
+      });
+    }
+    
+    const currentStop = trip.stops[trip.currentStopIndex];
+    const distance = calculateDistance(currentLat, currentLng, currentStop.lat, currentStop.lng);
+    const isExactMatch = checkLocationMatch(currentLat, currentLng, currentStop.lat, currentStop.lng);
+    
+    console.log(`\n📍 Trip ${tripId} - Stop ${trip.currentStopIndex + 1}/${trip.stops.length}`);
+    console.log(`Distance to current stop: ${distance.toFixed(1)}m`);
+    
+    // Check if reached current stop
+    if (isExactMatch || distance <= GEOFENCE_RADIUS_METERS) {
+      console.log(`✅ Stop ${trip.currentStopIndex + 1} reached!`);
+      
+      // Move to next stop
+      trip.currentStopIndex++;
+      
+      // Send notification to next stop if exists
+      if (trip.currentStopIndex < trip.stops.length) {
+        const nextStop = trip.stops[trip.currentStopIndex];
+        await sendNotification(
+          nextStop.fcmToken,
+          `Driver Approaching! 🚗`,
+          `Driver has reached stop ${trip.currentStopIndex} and is heading to you next`,
+          { tripId, stopNumber: (trip.currentStopIndex + 1).toString() }
+        );
+        
+        res.json({
+          success: true,
+          status: `Stop ${trip.currentStopIndex} reached`,
+          message: `Notification sent to stop ${trip.currentStopIndex + 1}`,
+          currentStopIndex: trip.currentStopIndex,
+          totalStops: trip.stops.length
+        });
+      } else {
+        // Trip completed
+        activeTrips.delete(tripId);
+        res.json({
+          success: true,
+          status: 'Trip completed',
+          message: 'All stops reached successfully'
+        });
+      }
+    } else {
+      res.json({
+        success: true,
+        status: 'Tracking...',
+        distance: Math.round(distance),
+        currentStop: trip.currentStopIndex + 1,
+        totalStops: trip.stops.length
+      });
+    }
+  } catch (error) {
+    console.error('❌ Multi-stop tracking error:', error);
+    res.status(500).json({ error: 'Tracking failed', details: error.message });
   }
 });
 
@@ -242,7 +404,9 @@ app.use('*', (req, res) => {
     availableEndpoints: [
       'GET /health',
       'POST /track-location',
-      'POST /send-fcm'
+      'POST /send-fcm',
+      'POST /start-multi-stop-tracking',
+      'POST /track-multi-stop-location'
     ]
   });
 });

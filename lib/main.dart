@@ -7,6 +7,7 @@ import 'services/geofence_provider.dart';
 import 'services/notification_service.dart';
 import 'screens/driver_screen.dart';
 import 'screens/parent_screen.dart';
+import 'screens/multi_stop_driver_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -179,6 +180,34 @@ class _AppSelectorState extends State<AppSelector> {
               ),
               const SizedBox(height: 24),
             
+              // Multi-Stop Driver App Button
+              SizedBox(
+                width: double.infinity,
+                height: 60,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => MultiStopDriverScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.route, size: 28),
+                  label: const Text(
+                    'Multi-Stop Driver',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
               // Driver App Button
               SizedBox(
                 width: double.infinity,

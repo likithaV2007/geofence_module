@@ -52,6 +52,42 @@ class ApiService {
     }
   }
 
+  Future<bool> startMultiStopTracking({
+    required String tripId,
+    required List<Map<String, dynamic>> stops,
+    required double currentLat,
+    required double currentLng,
+  }) async {
+    try {
+      return await _makeApiCallWithRetry('/start-multi-stop-tracking', {
+        'tripId': tripId,
+        'stops': stops,
+        'currentLat': currentLat,
+        'currentLng': currentLng,
+      });
+    } catch (e) {
+      print('Start multi-stop tracking error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> trackMultiStopLocation({
+    required String tripId,
+    required double currentLat,
+    required double currentLng,
+  }) async {
+    try {
+      return await _makeApiCallWithRetry('/track-multi-stop-location', {
+        'tripId': tripId,
+        'currentLat': currentLat,
+        'currentLng': currentLng,
+      });
+    } catch (e) {
+      print('Track multi-stop location error: $e');
+      return false;
+    }
+  }
+
   Future<bool> updateDriverLocation({
     required String tripId,
     required double currentLat,

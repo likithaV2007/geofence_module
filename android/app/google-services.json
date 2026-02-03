@@ -16,6 +16,31 @@
       "api_key": [
         {
           "current_key": "AIzaSyBuU28PTlF7rwfMiGYjnUHUvwTQeuYbFwM"
+        },
+        {
+          "current_key": "AIzaSyCz0EZKr077aUPpEDEEJstLaoJRFn_DRJI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:399134032115:android:f1d2b0200e15e60d1ff786",
+        "android_client_info": {
+          "package_name": "com.example.module_test"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBuU28PTlF7rwfMiGYjnUHUvwTQeuYbFwM"
+        },
+        {
+          "current_key": "AIzaSyCz0EZKr077aUPpEDEEJstLaoJRFn_DRJI"
         }
       ],
       "services": {
