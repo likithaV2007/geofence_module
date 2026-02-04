@@ -11,7 +11,7 @@ class AppConstants {
   static const String _remoteUrl = 'https://your-ngrok-url.ngrok-free.dev';
   
   // For production deployment
-  static const String _productionUrl = 'https://your-production-url.com';
+  static const String _productionUrl = 'https://geofence-module.onrender.com';
   
   // Current active URL - CHANGE THIS BASED ON YOUR SETUP
   static const String baseUrl = _productionUrl; // Ready for production hosting
