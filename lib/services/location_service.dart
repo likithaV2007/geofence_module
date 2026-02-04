@@ -88,7 +88,37 @@ class LocationService {
         );
   }
 
+  void startLocationUpdates(Function(LocationData) onLocationUpdate) {
+    _locationController ??= StreamController<LocationData>.broadcast();
+
+    final locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: AppConstants.minDistanceFilterMeters.toInt(),
+    );
+
+    _positionSubscription =
+        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+          (position) {
+            if (position.accuracy <= AppConstants.maxAcceptableAccuracy) {
+              final locationData = LocationData(
+                latitude: position.latitude,
+                longitude: position.longitude,
+                accuracy: position.accuracy,
+                timestamp: DateTime.now(),
+              );
+              onLocationUpdate(locationData);
+            }
+          },
+        );
+  }
+
   void stopLocationTracking() {
+    _positionSubscription?.cancel();
+    _locationController?.close();
+    _locationController = null;
+  }
+
+  void stopLocationUpdates() {
     _positionSubscription?.cancel();
     _locationController?.close();
     _locationController = null;

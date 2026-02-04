@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:location/location.dart';
 import '../services/api_service.dart';
 import '../services/location_service.dart';
+import '../models/location_data.dart';
 
 class MultiStopDriverScreen extends StatefulWidget {
   @override
@@ -118,8 +118,8 @@ class _MultiStopDriverScreenState extends State<MultiStopDriverScreen> {
     final success = await _apiService.startMultiStopTracking(
       tripId: _currentTripId!,
       stops: _stops,
-      currentLat: _currentLocation!.latitude!,
-      currentLng: _currentLocation!.longitude!,
+      currentLat: _currentLocation!.latitude,
+      currentLng: _currentLocation!.longitude,
     );
 
     if (success) {
@@ -140,8 +140,8 @@ class _MultiStopDriverScreenState extends State<MultiStopDriverScreen> {
       if (_isTracking && _currentTripId != null) {
         final success = await _apiService.trackMultiStopLocation(
           tripId: _currentTripId!,
-          currentLat: location.latitude!,
-          currentLng: location.longitude!,
+          currentLat: location.latitude,
+          currentLng: location.longitude,
         );
         
         setState(() {
@@ -267,7 +267,7 @@ class _MultiStopDriverScreenState extends State<MultiStopDriverScreen> {
                     ),
                     if (_currentLocation != null) ...[
                       SizedBox(height: 8),
-                      Text('Location: ${_currentLocation!.latitude!.toStringAsFixed(6)}, ${_currentLocation!.longitude!.toStringAsFixed(6)}',
+                      Text('Location: ${_currentLocation!.latitude.toStringAsFixed(6)}, ${_currentLocation!.longitude.toStringAsFixed(6)}',
                            style: TextStyle(fontSize: 12, color: Colors.grey)),
                     ],
                   ],
